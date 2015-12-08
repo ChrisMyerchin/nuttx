@@ -325,7 +325,7 @@ static int apbridgea_audio_set_config(struct apbridgea_audio_info *info,
     dai.data_tx_edge = DEVICE_I2S_EDGE_FALLING;
     dai.data_rx_edge = DEVICE_I2S_EDGE_RISING;
 
-    ret = device_i2s_set_config(info->i2s_dev, DEVICE_I2S_ROLE_SLAVE, &pcm,
+    ret = device_i2s_set_config(info->i2s_dev, DEVICE_I2S_ROLE_MASTER, &pcm,
                                 &dai);
     if (ret) {
         return ret;
