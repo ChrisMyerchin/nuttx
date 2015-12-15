@@ -900,7 +900,9 @@ int rt5647_playback_vol_get(struct audio_control *control,
     value->value.integer_value[0] = voll * ctlmax / regmax;
     value->value.integer_value[1] = volr * ctlmax / regmax;
 
-lldbg("\n vol_get l=%d r=%d\n", value->value.integer_value[0], value->value.integer_value[1]);
+#ifdef VERBOSE_MSG
+    lldbg("\n vol_get l=%d r=%d\n", value->value.integer_value[0], value->value.integer_value[1]);
+#endif
     return 0;
 }
 
@@ -929,7 +931,9 @@ int rt5647_playback_vol_set(struct audio_control *control,
     value->value.integer_value[0] = voll * regmax / ctlmax;
     value->value.integer_value[1] = volr * regmax / ctlmax;
 
+#ifdef VERBOSE
     lldbg("\n vol_set l=%d r=%d\n", value->value.integer_value[0], value->value.integer_value[1]);
+#endif
 
     return audcodec_value_set(control, value);
 }
@@ -1870,7 +1874,9 @@ static int rt5647_speaker_event(struct device *dev, uint8_t widget_id,
     case WIDGET_EVENT_POST_PWRUP:
         /* turn on Class-D power */
 
-lldbg("\nTurn On D Amp\n");
+#ifdef VERBOSE_MSG
+        lldbg("\nTurn On D Amp\n");
+#endif
 
         mask = 1 << RT5647_PWR1_CLSD_R_EN | 1 << RT5647_PWR1_CLSD_L_EN | \
                1 << RT5647_PWR1_CLSD_EN;
@@ -1879,9 +1885,9 @@ lldbg("\nTurn On D Amp\n");
         break;
     case WIDGET_EVENT_PRE_PWRDOWN:
         /* turn off Class-D power */
-
-lldbg("\nTurn Off D Amp\n");
-
+#ifdef VERBOSE_MSG
+        lldbg("\nTurn Off D Amp\n");
+#endif
         audcodec_update(RT5647_PWR_MGT_1, 0, mask);
         break;
     }

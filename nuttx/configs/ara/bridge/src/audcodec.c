@@ -235,8 +235,6 @@ int audcodec_bits_get(struct audio_control *control,
         value->value.integer_value[1] = data2;
     }
 
-lldbg("\n get Mute l=%s r=%s\n", ((data1)?"on":"off"), ((data2)?"on":"off") );
-
     return ret;
 }
 
