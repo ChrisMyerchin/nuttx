@@ -73,7 +73,7 @@ static int disable_codec_speaker(struct i2s_test_info *info,
                                 struct device *dev);
 static int enable_codec_speaker(struct i2s_test_info *info,
                                 struct device *dev);
-// rem chris i2s_test -t -i -f 1000 -v 19 -C 2 100
+
 int negotiate_i2s_to_codec_interface(struct i2s_test_info *info,
                                      struct device *i2s_dev,
                                      struct device *codec_dev)
