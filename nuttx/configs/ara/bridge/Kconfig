@@ -91,6 +91,9 @@ config BOARD_HAVE_AUDIO
 		that information in a relatively easy manner and is
 		required for Greybus audio to work.
 
+config BOARD_COMMON_CODEC
+	bool
+
 choice
 	prompt "Select a bridge firmware configuration"
 	depends on ARA_BRIDGE_HAVE_CAMERA || BOARD_HAVE_DISPLAY
