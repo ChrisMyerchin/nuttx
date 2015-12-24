@@ -121,6 +121,17 @@ static struct device_resource sdio_board_resources[] = {
 };
 #endif
 
+#ifdef CONFIG_BOARD_CODEC_RT5647
+static struct device_resource rt5647_resources[] = {
+    {
+        .name  = "rt5647_i2c_addr",
+        .type  = DEVICE_RESOURCE_TYPE_I2C_ADDR,
+        .start = 0x1B,
+        .count = 1,
+    },
+};
+#endif
+
 static struct device devices[] = {
 #ifdef CONFIG_ARA_BRIDGE_HAVE_USB4624
     {
@@ -260,6 +271,63 @@ static void sdb_fixups(void)
 #endif
 }
 
+#include <nuttx/device_audio_board.h>
+#include <nuttx/device_codec.h>
+#include <arch/board/audio_board.h>
+
+#ifdef CONFIG_BOARD_HAVE_AUDIO
+extern struct device_driver audio_board_driver;
+#ifdef CONFIG_BOARD_CODEC_RT5647
+extern struct device_driver rt5647_codec;
+#endif
+
+static struct audio_board_dai white_audio_dais_bundle_0[] = {
+    {
+        .data_cport = 4, /* Must match Audio DATA CPort in manifest */
+        .i2s_dev_id = 0, /* ID of I2S Device */
+    },
+};
+
+static struct audio_board_bundle white_audio_bundles[] = {
+    {
+        .mgmt_cport     = 3, /* Must match Audio MGMT CPort in manifest */
+        .codec_dev_id   = 0, /* ID of codec device */
+        .dai_count      = ARRAY_SIZE(white_audio_dais_bundle_0),
+        .dai            = white_audio_dais_bundle_0,
+    },
+};
+
+static struct audio_board_init_data white_audio_board_init_data = {
+    .bundle_count   = ARRAY_SIZE(white_audio_bundles),
+    .bundle         = white_audio_bundles,
+};
+
+static struct device white_audio_devices[] = {
+    {
+        .type           = DEVICE_TYPE_AUDIO_BOARD_HW,
+        .name           = "audio_board",
+        .desc           = "White-module Audio Information",
+        .id             = 0,
+        .init_data      = &white_audio_board_init_data,
+    },
+#ifdef CONFIG_BOARD_CODEC_RT5647
+    {
+        .type           = DEVICE_TYPE_CODEC_HW,
+        .name           = "rt5647",
+        .desc           = "Realtek ALC5647 Audio Codec",
+        .id             = 0,
+        .resources      = rt5647_resources,
+        .resource_count = ARRAY_SIZE(rt5647_resources),
+    },
+#endif
+};
+
+static struct device_table white_audio_device_table = {
+    .device = white_audio_devices,
+    .device_count = ARRAY_SIZE(white_audio_devices),
+};
+#endif
+
 void ara_module_early_init(void)
 {
 #ifdef CONFIG_BOARD_HAVE_DISPLAY
@@ -277,6 +345,15 @@ void ara_module_init(void)
 #ifdef CONFIG_DEVICE_CORE
     device_table_register(&bdb_device_table);
     bdb_driver_register();
+#endif
+
+#ifdef CONFIG_BOARD_HAVE_AUDIO
+    device_table_register(&white_audio_device_table);
+
+    device_register_driver(&audio_board_driver);
+#ifdef CONFIG_BOARD_CODEC_RT5647
+    device_register_driver(&rt5647_codec);
+#endif
 #endif
 
     board_display_init();
