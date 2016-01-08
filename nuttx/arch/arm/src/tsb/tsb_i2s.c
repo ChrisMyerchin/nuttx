@@ -64,6 +64,11 @@
     DEVICE_I2S_PCM_RATE_16000  | \
     DEVICE_I2S_PCM_RATE_32000  | \
     DEVICE_I2S_PCM_RATE_48000)
+/**
+ *     Toshiba states the highes bclk freq supported is: 3.413MHz
+ *     With a maximum 8 x multiplier this makes the maximum mclk - 27,304,000
+ */
+#define TSB_I2S_MCLK_MAX    27304000
 
 #define TSB_I2S_PROTOCOL_MASK (DEVICE_I2S_PROTOCOL_PCM | \
                                DEVICE_I2S_PROTOCOL_I2S | \
@@ -360,8 +365,6 @@ static int tsb_i2s_test_mclk(struct device *pll_dev,
     uint32_t bclk_freq;
     uint32_t mclk_freq;
     bool close_pll = false;
-
-    //rem chris make one function
 
     /* can we generate mclk to match pcm setting*/
     ret = tsb_i2s_calc_bclk(pcm);
@@ -1293,16 +1296,10 @@ static int tsb_i2s_op_get_caps(struct device *dev,
         dai->data_rx_edge = TSB_I2S_RXCLK_EDGE_MASK;
         dai->data_tx_edge = TSB_I2S_TXCLK_EDGE_MASK;
     } else {
-
-        /* query for slave
-           Test if mclk will work
-           return full set of slave hardware capabilities
-         */
-
-        //rem chris to do about slave mclk
-        // Toshiba spec states "Maximum audio sample frequency supported is 48KHz."
-        // does this limit mclk to 12288000????
-        // for now just ignore mclk
+        if (dai->mclk_freq > TSB_I2S_MCLK_MAX) {
+            /* mclk is too fast */
+            return -EINVAL;
+        }
 
         dai->protocol = TSB_I2S_PROTOCOL_MASK;
         dai->wclk_polarity = TSB_I2S_WCLK_PALARITY_MASK;
@@ -1355,7 +1352,10 @@ static int tsb_i2s_op_set_config(struct device *dev,
             return -EINVAL;
         }
     } else {
-        //rem chris to do about slave mclk
+        if (dai->mclk_freq > TSB_I2S_MCLK_MAX) {
+            /* mclk is too fast */
+            return -EINVAL;
+        }
     }
 
     memcpy(&info->pcm, pcm, sizeof(struct device_i2s_pcm));
