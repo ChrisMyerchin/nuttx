@@ -73,7 +73,7 @@ static int disable_codec_speaker(struct i2s_test_info *info,
                                 struct device *dev);
 static int enable_codec_speaker(struct i2s_test_info *info,
                                 struct device *dev);
-// rem chris i2s_test -t -i -f 1000 -v 19 -C 2 100
+
 int negotiate_i2s_to_codec_interface(struct i2s_test_info *info,
                                      struct device *i2s_dev,
                                      struct device *codec_dev)
@@ -130,24 +130,9 @@ static int stream_i2s_to_codec(struct i2s_test_info *info,
     while (sem_wait(&i2s_test_done_sem) && (errno == EINTR));
 #else
     clock_gettime(CLOCK_REALTIME, &timeout);
-    timeout.tv_sec += 5;
+    timeout.tv_sec += info->codec_playback_timout;
     sem_timedwait(&i2s_test_done_sem, &timeout);
 
-    ret = disable_codec_speaker(info, codec_dev);
-    if (ret) {
-        printf("disable speaker error!\n");
-    }
-    clock_gettime(CLOCK_REALTIME, &timeout);
-    timeout.tv_sec += 5;
-    sem_timedwait(&i2s_test_done_sem, &timeout);
-
-    ret =enable_codec_speaker(info, codec_dev);
-    if (ret) {
-        printf("disable speaker error!\n");
-    }
-    clock_gettime(CLOCK_REALTIME, &timeout);
-    timeout.tv_sec += 5;
-    sem_timedwait(&i2s_test_done_sem, &timeout);
     ret = disable_codec_speaker(info, codec_dev);
     if (ret) {
         printf("disable speaker error!\n");

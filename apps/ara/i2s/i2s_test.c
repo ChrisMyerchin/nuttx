@@ -58,7 +58,7 @@
 
 #define DEFAULT_SAMPLE_RATE         48000
 #define DEFAULT_AUDIO_FREQUENCY     120
-#define MIN_AUDIO_FREQUENCY         1
+#define MIN_AUDIO_FREQUENCY         0
 #define MAX_AUDIO_FREQUENCY         100000
 #define DEFAULT_AUDIO_VOLUME        8
 #define MIN_AUDIO_VOLUME            0
@@ -88,13 +88,14 @@ static void i2s_test_print_usage(char *argv[])
     printf("\t-r    receive audio data\n");
     printf("\t-i    use I2S protocol\n");
     printf("\t-l    use LR Stereo protocol\n");
-    printf("\t-f    generate output sine wave with \n");
-    printf("\t\t frequency    decimal number between %d-%d (Hz)\n",MIN_AUDIO_FREQUENCY,MAX_AUDIO_FREQUENCY);
-    printf("\t-v    generate output sine wave with \n");
-    printf("\t\t volume    decimal number between %d-%d\n",MIN_AUDIO_VOLUME,MAX_AUDIO_VOLUME);
-    printf("\t\t                  %d - mute\n",MIN_AUDIO_VOLUME);
-    printf("\t\t                  %d - max volume\n",MAX_AUDIO_VOLUME);
-    printf("\t-C    configure Codec for playback (only valid with -t and <-f|-v> )\n");
+    printf("\t-f    generate output sine wave \n");
+    printf("\t\t 'frequency'    decimal number between %d-%d (Hz)\n",MIN_AUDIO_FREQUENCY,MAX_AUDIO_FREQUENCY);
+    printf("\t\t  frequency = 0, Stepped sweep (20 Hz to 20,000 Hz)\n");
+    printf("\t-v    generate output sine wave \n");
+    printf("\t\t 'volume'    decimal number between %d-%d\n",MIN_AUDIO_VOLUME,MAX_AUDIO_VOLUME);
+    printf("\t\t             %d - mute\n",MIN_AUDIO_VOLUME);
+    printf("\t\t             %d - max volume\n",MAX_AUDIO_VOLUME);
+    printf("\t-C    configure Codec for playback  (only valid with -t and (<-f|-v> or –V) )\n");
     printf("\t-c    check receive data (only valid with -r)\n");
 }
 
@@ -226,19 +227,24 @@ static int i2s_test_parse_cmdline(int argc, char *argv[],
 static void i2s_test_print_cmdline_summary(struct i2s_test_info *info)
 {
     printf("\n");
-    printf("-> %s %s data\n",
+    printf("%s %s data\n",
             info->is_transmitter ? "Transmitting" : "Receiving",
             info->is_i2s ? "I2S" : "LR Stereo");
     printf("   %lu ring buffer entries of %lu audio samples each\n",
             info->rb_entries, info->samples_per_rb_entry);
     if (info->is_gen_audio) {
-        printf("Generate Audio Frequency: %lu Hz, Volume %lu\n",
-                info->aud_frequency,
-                info->aud_volume);
+        if (info->aud_frequency == 0) {
+            printf("Generate Frequency Sweep\n");
+        } else {
+            printf("Generate Audio Frequency: %lu Hz, Volume %lu\n",
+                    info->aud_frequency,
+                    info->aud_volume);
+        }
         if (info->use_codec) {
             printf("Use Codec for playback\n");
         }
     }
+    printf("\n");
 }
 
 static int i2s_test_rb_fill_and_pass(struct ring_buf *rb, void *arg)
@@ -273,9 +279,9 @@ static int i2s_test_rb_fill_sinewave_and_pass(struct ring_buf *rb)
     buff_size = ring_buf_space(rb);
 
 
-    ret_value = fill_output_buff((int16_t *)ring_buf_get_tail(rb),
-                                 &buff_size,
-                                 (sizeof(struct i2s_test_sample) / sizeof(((struct i2s_test_sample*)0)->left)));
+    ret_value = fill_output_buff_with_sine((int16_t *)ring_buf_get_tail(rb),
+                                           &buff_size,
+                                           (sizeof(struct i2s_test_sample) / sizeof(((struct i2s_test_sample*)0)->left)));
     if (ret_value >= 0) {
         ring_buf_put(rb, ret_value);
         ring_buf_pass(rb);
@@ -692,7 +698,6 @@ int i2s_test_main(int argc, char *argv[])
     }
 
     i2s_test_print_cmdline_summary(info);
-    printf("   info struct address: 0x%08x\n", info);
 
     sem_init(&i2s_test_done_sem, 0, 0);
 
@@ -716,12 +721,14 @@ int i2s_test_main(int argc, char *argv[])
     }
 
     if (info->is_gen_audio) {
-        gen_audio_init(info->aud_frequency, DEFAULT_SAMPLE_RATE, info->aud_volume);
+        gen_audio_sine_init(info->aud_frequency, DEFAULT_SAMPLE_RATE, info->aud_volume);
     }
 
     if (info->is_transmitter) {
         if(info->use_codec)
         {
+            /* playback time in Sec */
+            info->codec_playback_timout = 20;
             ret = play_sine_wave_via_codec(info);
         } else {
             ret = i2s_test_start_streaming_transmitter(info);
