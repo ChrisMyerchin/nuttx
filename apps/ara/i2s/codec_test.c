@@ -51,7 +51,7 @@
 #define RT5647_CTL_PLAYBACK_MUTE            31
 #define RT5647_CTL_PLAYBACK_VOL             32
 #define RT5647_CTL_SPKAMP_SWITCH            33
-#define RT5647_WIDGET_SPK_AMP_SWITCH        29
+#define RT5647_WIDGET_SPK_AMP_SWITCH        2
 #endif
 
 /**
