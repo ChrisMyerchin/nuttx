@@ -44,7 +44,9 @@ struct i2s_test_info {
     uint8_t                 is_gen_audio;
     uint32_t                aud_frequency;
     uint32_t                aud_volume;
+    uint8_t                 use_codec;
     uint8_t                 check_rx_data;
+    uint32_t                codec_playback_timout;
     unsigned long           rb_entries;
     unsigned long           samples_per_rb_entry;
     uint16_t                left;

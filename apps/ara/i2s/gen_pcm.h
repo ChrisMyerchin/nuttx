@@ -30,14 +30,14 @@
 #ifndef _GEN_PCM_H_
 #define _GEN_PCM_H_
 
-int gen_audio_init(uint32_t frequecy,
-                   uint32_t sample_rate,
-                   uint8_t volume);
+int gen_audio_sine_init(uint32_t frequency,
+                        uint32_t sample_rate,
+                        uint8_t volume);
 
-int gen_audio_deinit(void);
+int gen_audio_sine_deinit(void);
 
-int fill_output_buff(int16_t *buffer,
-                     uint32_t *buff_size,
-                     uint8_t number_of_channels);
+int fill_output_buff_with_sine(int16_t *buffer,
+                               uint32_t *buff_size,
+                               uint8_t number_of_channels);
 
 #endif //_GEN_PCM_H_
