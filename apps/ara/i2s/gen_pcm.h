@@ -30,6 +30,10 @@
 #ifndef _GEN_PCM_H_
 #define _GEN_PCM_H_
 
+/* 20 step (0-100) volume log10 scale */
+extern const uint8_t log_scale[];
+extern const uint8_t log_table_size;
+
 int gen_audio_sine_init(uint32_t frequency,
                         uint32_t sample_rate,
                         uint8_t volume);

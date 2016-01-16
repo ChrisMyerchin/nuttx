@@ -196,7 +196,7 @@ struct {
 #define FREQ_OF_INC(X) ((X.phase_inc * X.sample_rate)/NUM_SAMPLES_IN_PERIOD_BUFFER)
 
 /* 20 step (0-100) volume log10 scale */
-uint8_t log_scale[] = {
+const uint8_t log_scale[] = {
     0,
     2,
     4,
@@ -219,6 +219,7 @@ uint8_t log_scale[] = {
     100
 };
 #define LOG_TABLE_SIZE (ARRAY_SIZE(log_scale))
+const uint8_t log_table_size = LOG_TABLE_SIZE;
 #define SWEEP_STEP_MSEC (SWEEP_TIME_MSEC / LOG_TABLE_SIZE)
 
 /**
