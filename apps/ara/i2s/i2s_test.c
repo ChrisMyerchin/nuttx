@@ -46,6 +46,7 @@
 #include <nuttx/ring_buf.h>
 #include "i2s_test.h"
 #include "gen_pcm.h"
+#include "codec_test.h"
 
 #ifndef SIGKILL
 #define SIGKILL     9
@@ -70,12 +71,7 @@ struct i2s_test_sample {
     uint16_t    right;
 };
 
-/**
- * Hard coded test configuration parameters
- */
-extern struct device_i2s_pcm i2s_test_pcm;
-
-static struct device_i2s_dai test_i2s_dai_m = {
+static struct device_i2s_dai test_i2s_dai = {
     6144000,
     0,
     DEVICE_I2S_POLARITY_NORMAL,
@@ -84,18 +80,9 @@ static struct device_i2s_dai test_i2s_dai_m = {
     DEVICE_I2S_EDGE_FALLING
 };
 
-static struct device_i2s_dai test_i2s_dai_s = {
-    6144000,
-    0,
-    DEVICE_I2S_POLARITY_NORMAL,
-    DEVICE_I2S_EDGE_RISING,
-    DEVICE_I2S_EDGE_FALLING,
-    DEVICE_I2S_EDGE_RISING
-};
-
 static void i2s_test_print_usage(char *argv[])
 {
-    printf("Usage: %s <-t|-r> <-i|-l> [-f frequency] [-v volume] [-c] "
+    printf("Usage: %s <-t|-r> <-i|-l> [-f frequency] [-v volume] [-C] [-c] "
            "<rb entries> <sample per rb entry>\n", argv[0]);
     printf("\t-t    transmit audio data\n");
     printf("\t-r    receive audio data\n");
@@ -108,17 +95,18 @@ static void i2s_test_print_usage(char *argv[])
     printf("\t\t 'volume'    decimal number between %d-%d\n",MIN_AUDIO_VOLUME,MAX_AUDIO_VOLUME);
     printf("\t\t             %d - mute\n",MIN_AUDIO_VOLUME);
     printf("\t\t             %d - max volume\n",MAX_AUDIO_VOLUME);
+    printf("\t-C    configure Codec for playback  (only valid with -t and (<-f|-v> or –V) )\n");
     printf("\t-c    check receive data (only valid with -r)\n");
 }
 
 static int i2s_test_parse_cmdline(int argc, char *argv[],
                                   struct i2s_test_info *info)
 {
-    int tcnt, rcnt, icnt, lcnt, ccnt, vcnt, fcnt, errcnt;
+    int tcnt, rcnt, icnt, lcnt, ccnt, codec_cnt, vcnt, fcnt, errcnt;
     int option;
     int ret = 0;
 
-    tcnt = rcnt = icnt = lcnt = ccnt = vcnt = fcnt = errcnt = 0;
+    tcnt = rcnt = icnt = lcnt = ccnt = codec_cnt = vcnt = fcnt = errcnt = 0;
 
     if (argc > 11) {
         fprintf(stderr, "Too many arguments: %d\n",argc);
@@ -129,7 +117,7 @@ static int i2s_test_parse_cmdline(int argc, char *argv[],
     info->aud_volume = DEFAULT_AUDIO_VOLUME;
 
     optind = -1;
-    while ((option = getopt(argc, argv, "trilf:v:c")) != ERROR) {
+    while ((option = getopt(argc, argv, "trilf:v:Cc")) != ERROR) {
         switch(option) {
         case 't':
             info->is_transmitter = 1;
@@ -193,6 +181,10 @@ static int i2s_test_parse_cmdline(int argc, char *argv[],
                         MAX_AUDIO_VOLUME);
             }
             break;
+        case 'C':
+            info->use_codec = 1;
+            codec_cnt++;
+            break;
         case 'c':
             info->check_rx_data = 1;
             ccnt++;
@@ -207,9 +199,15 @@ static int i2s_test_parse_cmdline(int argc, char *argv[],
         return -EINVAL;
     }
 
+    if (!info->is_gen_audio && info->use_codec) {
+            fprintf(stderr, "Must enable generate audio to configure the codec\n");
+            return -EINVAL;
+        }
+
     if ((tcnt > 1) || (rcnt > 1) || ((tcnt != 1) && (rcnt != 1)) ||
         ((icnt + lcnt) != 1) || (ccnt && !rcnt) ||
         ((vcnt | fcnt) && !tcnt) ||
+        ((codec_cnt && !tcnt) || (codec_cnt && !(vcnt | fcnt))) ||
         errcnt){
         return -EINVAL;
     }
@@ -226,7 +224,6 @@ static int i2s_test_parse_cmdline(int argc, char *argv[],
     return 0;
 }
 
-
 static void i2s_test_print_cmdline_summary(struct i2s_test_info *info)
 {
     printf("\n");
@@ -242,6 +239,9 @@ static void i2s_test_print_cmdline_summary(struct i2s_test_info *info)
             printf("Generate Audio Frequency: %lu Hz, Volume %lu\n",
                     info->aud_frequency,
                     info->aud_volume);
+        }
+        if (info->use_codec) {
+            printf("Use Codec for playback\n");
         }
     }
     printf("\n");
@@ -534,7 +534,7 @@ static int i2s_test_start_streaming_transmitter(struct i2s_test_info *info)
         return -EIO;
     }
 
-    /* Validate transmitter configuration */
+    /*validate transmitter configuration */
     ret = device_i2s_get_caps(dev,
                               DEVICE_I2S_ROLE_MASTER,
                               &i2s_test_pcm,
@@ -543,47 +543,44 @@ static int i2s_test_start_streaming_transmitter(struct i2s_test_info *info)
     /* Check for matching test configuration */
     if (ret) {
 
-        fprintf(stderr,
-                "I2S master does support hard coded pcm test configuration\n");
+        fprintf(stderr, "I2S master does support hard coded pcm test configuration\n");
         goto err_dev_close;
     }
 
-    if (!((dai.mclk_freq == test_i2s_dai_m.mclk_freq) &&
-         (dai.wclk_polarity | test_i2s_dai_m.wclk_polarity) &&
-         (dai.data_rx_edge | test_i2s_dai_m.data_rx_edge) &&
-         (dai.data_tx_edge | test_i2s_dai_m.data_tx_edge))) {
+    if (!((dai.mclk_freq == test_i2s_dai.mclk_freq) &&
+         (dai.wclk_polarity | test_i2s_dai.wclk_polarity) &&
+         (dai.data_rx_edge | test_i2s_dai.data_rx_edge) &&
+         (dai.data_tx_edge | test_i2s_dai.data_tx_edge))) {
 
-        fprintf(stderr,
-                "I2S master does support hard coded dai test configuration\n");
+        fprintf(stderr, "I2S master does support hard coded dai test configuration\n");
         goto err_dev_close;
     }
 
-    /* Master is opposite of the slave setting */
+    /* master is opposite the slave setting */
     if (!(dai.wclk_change_edge | DEVICE_I2S_EDGE_FALLING)) {
-        fprintf(stderr,
-                "Transmitter test mode settings require wclk falling\n");
+        fprintf(stderr, "Transmitter test mode settings require wclk falling\n");
         goto err_dev_close;
     }
-    test_i2s_dai_m.wclk_change_edge |= DEVICE_I2S_EDGE_FALLING;
+    test_i2s_dai.wclk_change_edge |= DEVICE_I2S_EDGE_FALLING;
 
     if (info->is_i2s) {
-        if (!(dai.protocol | DEVICE_I2S_PROTOCOL_I2S)) {
+        if(!(dai.protocol | DEVICE_I2S_PROTOCOL_I2S)) {
             fprintf(stderr, "I2S master port does not support I2S protocol\n");
             goto err_dev_close;
         }
-        test_i2s_dai_m.protocol |= DEVICE_I2S_PROTOCOL_I2S;
+        test_i2s_dai.protocol |= DEVICE_I2S_PROTOCOL_I2S;
     } else {
-        if (!(dai.protocol | DEVICE_I2S_PROTOCOL_LR_STEREO)) {
+        if(!(dai.protocol | DEVICE_I2S_PROTOCOL_LR_STEREO)) {
             fprintf(stderr, "I2S master port does not support LR protocol\n");
             goto err_dev_close;
         }
-        test_i2s_dai_m.protocol |= DEVICE_I2S_PROTOCOL_LR_STEREO;
+        test_i2s_dai.protocol |= DEVICE_I2S_PROTOCOL_LR_STEREO;
     }
 
     ret = device_i2s_set_config(dev,
                                 DEVICE_I2S_ROLE_MASTER,
                                 &i2s_test_pcm,
-                                &test_i2s_dai_m);
+                                &test_i2s_dai);
     if (ret) {
         fprintf(stderr, "set configuration failed: %d\n", ret);
         goto err_dev_close;
@@ -610,7 +607,6 @@ err_dev_close:
 static int i2s_test_start_streaming_receiver(struct i2s_test_info *info)
 {
     struct device *dev;
-    struct device_i2s_dai dai;
     int ret;
 
     if ((info->is_transmitter) &&
@@ -625,49 +621,30 @@ static int i2s_test_start_streaming_receiver(struct i2s_test_info *info)
         return -EIO;
     }
 
+    /* validate receiver configuration */
+    if (info->is_i2s) {
+        test_i2s_dai.protocol |= DEVICE_I2S_PROTOCOL_I2S;
+    } else {
+        test_i2s_dai.protocol |= DEVICE_I2S_PROTOCOL_LR_STEREO;
+    }
+
+    /* slave is opposite the master setting */
+    test_i2s_dai.wclk_change_edge |= DEVICE_I2S_EDGE_RISING;
+
     ret = device_i2s_get_caps(dev,
                               DEVICE_I2S_ROLE_SLAVE,
                               &i2s_test_pcm,
-                              &dai);
+                              &test_i2s_dai);
 
     if (ret) {
-        fprintf(stderr,
-               "I2S slave configuration does not support test mode settings\n");
+        fprintf(stderr, "I2S slave configuration does not support test mode settings\n");
         goto err_dev_close;
-    }
-
-    /* Use whatever mclk frequency we are handed back */
-    test_i2s_dai_s.mclk_freq = dai.mclk_freq;
-
-    /* Verify match with hard coded settings */
-    if (!((dai.wclk_polarity | test_i2s_dai_s.wclk_polarity) &&
-         (dai.wclk_change_edge | test_i2s_dai_s.wclk_change_edge) &&
-         (dai.data_rx_edge | test_i2s_dai_s.data_rx_edge) &&
-         (dai.data_tx_edge | test_i2s_dai_s.data_tx_edge))) {
-
-        fprintf(stderr,
-                "I2S slave does support hard coded dai test configuration\n");
-        goto err_dev_close;
-    }
-
-    if (info->is_i2s) {
-        if (!(dai.protocol | DEVICE_I2S_PROTOCOL_I2S)) {
-            fprintf(stderr, "I2S slave port does not support I2S protocol\n");
-            goto err_dev_close;
-        }
-        test_i2s_dai_s.protocol |= DEVICE_I2S_PROTOCOL_I2S;
-    } else {
-        if (!(dai.protocol | DEVICE_I2S_PROTOCOL_LR_STEREO)) {
-            fprintf(stderr, "I2S slave port does not support LR protocol\n");
-            goto err_dev_close;
-        }
-        test_i2s_dai_s.protocol |= DEVICE_I2S_PROTOCOL_LR_STEREO;
     }
 
     ret = device_i2s_set_config(dev,
                                DEVICE_I2S_ROLE_SLAVE,
                                &i2s_test_pcm,
-                               &test_i2s_dai_s);
+                               &test_i2s_dai);
     if (ret) {
         fprintf(stderr, "set configuration failed: %d\n", ret);
         goto err_dev_close;
@@ -748,9 +725,14 @@ int i2s_test_main(int argc, char *argv[])
     }
 
     if (info->is_transmitter) {
-
-        ret = i2s_test_start_streaming_transmitter(info);
-
+        if(info->use_codec)
+        {
+            /* playback time in Sec */
+            info->codec_playback_timout = 20;
+            ret = play_sine_wave_via_codec(info);
+        } else {
+            ret = i2s_test_start_streaming_transmitter(info);
+        }
     } else {
         ret = i2s_test_start_streaming_receiver(info);
     }
