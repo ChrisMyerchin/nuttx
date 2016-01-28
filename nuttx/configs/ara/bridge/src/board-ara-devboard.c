@@ -40,6 +40,8 @@
 #include <nuttx/util.h>
 #include <nuttx/usb.h>
 #include <nuttx/device_lights.h>
+//rem chris
+#include <nuttx/device_codec.h>
 
 #include "tsb_scm.h"
 #include "up_arch.h"
@@ -79,6 +81,16 @@ static struct device_resource sdio_board_resources[] = {
     },
 };
 #endif
+
+//rem chris
+static struct device_resource rt5647_resources[] = {
+    {
+        .name  = "rt5647_i2c_addr",
+        .type  = DEVICE_RESOURCE_TYPE_I2C_ADDR,
+        .start = 0x1B,
+        .count = 1,
+    },
+};
 
 static struct device devices[] = {
 #ifdef CONFIG_ARA_BRIDGE_HAVE_USB4624
@@ -131,6 +143,15 @@ static struct device devices[] = {
         .resource_count = ARRAY_SIZE(sdio_board_resources),
     },
 #endif
+    //rem chris
+    {
+        .type           = DEVICE_TYPE_CODEC_HW,
+        .name           = "rt5647",
+        .desc           = "Realtek ALC5647 Audio Codec",
+        .id             = 0,
+        .resources      = rt5647_resources,
+        .resource_count = ARRAY_SIZE(rt5647_resources),
+    },
 };
 
 static struct device_table bdb_device_table = {
@@ -178,6 +199,10 @@ void ara_module_init(void)
     device_table_register(&bdb_device_table);
     bdb_driver_register();
 #endif
+
+    //rem chris
+    extern struct device_driver rt5647_codec;
+    device_register_driver(&rt5647_codec);
 
 #ifdef CONFIG_APBRIDGEA
     csi_tx_srv_init();

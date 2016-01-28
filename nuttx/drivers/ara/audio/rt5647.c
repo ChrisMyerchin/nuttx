@@ -1302,6 +1302,10 @@ static int get_data_cport(unsigned int bundle_index, unsigned int dai_index,
     struct device *dev;
     int ret;
 
+    //rem chris
+    *data_cport = 0;
+    return 0;
+
     dev = device_open(DEVICE_TYPE_AUDIO_BOARD_HW, 0);
     if (!dev) {
         return ret = -EIO;
