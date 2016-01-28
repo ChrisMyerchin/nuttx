@@ -28,10 +28,14 @@
 #ifndef __GEN_SAMP_H__
 #define __GEN_SAMP_H__
 
+//#define USE_AUDIO_SAMPLE_CODE
+
+#ifdef USE_AUDIO_SAMPLE_CODE
 int gen_audio_sample_init( uint8_t volume );
 int gen_audio_sample_deinit(void);
 int fill_output_buff_with_samp( int16_t *buffer,
                                 uint32_t *buff_size,
                                 uint8_t number_of_channels);
+#endif
 
 #endif /* __GEN_SAMP_H__ */

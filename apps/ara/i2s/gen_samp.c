@@ -27,7 +27,7 @@
 */
 
 /**
-Generate sample sine wave data
+use sample audio data
 */
 
 #include <nuttx/config.h>
@@ -40,7 +40,10 @@ Generate sample sine wave data
 #include <sys/time.h>
 #include <nuttx/time.h>
 #include <gen_pcm.h>
+#include "gen_samp.h"
 #include <test8k.h>
+
+#ifdef USE_AUDIO_SAMPLE_CODE
 
 #define SAMPLE_STREAM_SIGNATURE 0xFEEC
 #define I2S_PLAY_RATE   48000
@@ -202,3 +205,5 @@ int fill_output_buff_with_samp( int16_t *buffer,
 
     return ret;
 }
+
+#endif /* USE_AUDIO_SAMPLE_CODE */
