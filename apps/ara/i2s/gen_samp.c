@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2015 Google Inc.
+* Copyright (c) 2016 Google Inc.
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,7 @@
 */
 
 /**
-use sample audio data
+Generate i2s data based on recorded sample
 */
 
 #include <nuttx/config.h>
@@ -40,10 +40,7 @@ use sample audio data
 #include <sys/time.h>
 #include <nuttx/time.h>
 #include <gen_pcm.h>
-#include "gen_samp.h"
 #include <test8k.h>
-
-#ifdef USE_AUDIO_SAMPLE_CODE
 
 #define SAMPLE_STREAM_SIGNATURE 0xFEEC
 #define I2S_PLAY_RATE   48000
@@ -64,11 +61,12 @@ static int16_t swap_16( int16_t val )
     return (val << 8) | ((val >> 8) & 0xFF);
 }
 
+/* for future use
 static int32_t swap_32( int32_t val )
 {
     val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF );
     return (val << 16) | ((val >> 16) & 0xFFFF);
-}
+} */
 
 /**
 Initialize Sample Audio Output Stream
@@ -117,7 +115,8 @@ int gen_audio_sample_deinit(void)
         fprintf(stderr, "delete uninitialized\n");
         ret = -EINVAL;
     } else {
-        sample_stream_state.signature = 0;  //just in case someone tries to use a stale structure.
+        /* just in case someone tries to use a stale structure. */
+        sample_stream_state.signature = 0;
     }
 
     return ret;
@@ -198,12 +197,10 @@ int fill_output_buff_with_samp( int16_t *buffer,
             current_buff_size -= number_of_channels*sizeof(current_sample);
         }
 
-        //update number of filled
+        /* update number of filled */
         ret = *buff_size - current_buff_size;
 
     }
 
     return ret;
 }
-
-#endif /* USE_AUDIO_SAMPLE_CODE */

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 Google Inc.
+ * Copyright (c) 2015-2016 Google Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -83,11 +83,7 @@ static struct device_i2s_dai test_i2s_dai = {
 
 static void i2s_test_print_usage(char *argv[])
 {
-#ifdef USE_AUDIO_SAMPLE_CODE
     printf("Usage: %s <-t|-r> <-i|-l> <[-f frequency] | [-s]> [-v] [-C] [-c]"
-#else
-    printf("Usage: %s <-t|-r> <-i|-l> <[-f frequency]> [-v] [-C] [-c]"
-#endif
            "<rb entries> <sample per rb entry>\n", argv[0]);
     printf("\t-t    transmit audio data\n");
     printf("\t-r    receive audio data\n");
@@ -97,9 +93,7 @@ static void i2s_test_print_usage(char *argv[])
     printf("\t\t 'frequency' decimal number between %d-%d (Hz)\n",MIN_AUDIO_FREQUENCY,MAX_AUDIO_FREQUENCY);
     printf("\t\t  frequency = 0, Stepped sweep (20 Hz to 20,000 Hz)\n");
     printf("\t-v    generate output sine wave \n");
-#ifdef USE_AUDIO_SAMPLE_CODE
     printf("\t-s    output sample data.\n");
-#endif
     printf("\t\t 'volume' decimal number between %d-%d\n",MIN_AUDIO_VOLUME,MAX_AUDIO_VOLUME);
     printf("\t\t             %d - mute\n",MIN_AUDIO_VOLUME);
     printf("\t\t             %d - max volume\n",MAX_AUDIO_VOLUME);
@@ -125,11 +119,7 @@ static int i2s_test_parse_cmdline(int argc, char *argv[],
     info->aud_volume = DEFAULT_AUDIO_VOLUME;
 
     optind = -1;
-#ifdef USE_AUDIO_SAMPLE_CODE
     while ((option = getopt(argc, argv, "trilf:v:sCc")) != ERROR) {
-#else
-    while ((option = getopt(argc, argv, "trilf:v:Cc")) != ERROR) {
-#endif
         switch(option) {
         case 't':
             info->is_transmitter = 1;
@@ -169,13 +159,11 @@ static int i2s_test_parse_cmdline(int argc, char *argv[],
                         MAX_AUDIO_FREQUENCY);
             }
             break;
-#ifdef USE_AUDIO_SAMPLE_CODE
         case 's':
             info->is_gen_audio = 1;
             info->use_sample = 1;
             sample_cnt++;
             break;
-#endif
         case 'v':
             vcnt++;
             ret = sscanf(optarg, "%u", &info->aud_volume);
@@ -223,11 +211,8 @@ static int i2s_test_parse_cmdline(int argc, char *argv[],
 
     if ((tcnt > 1) || (rcnt > 1) || ((tcnt != 1) && (rcnt != 1)) ||
         ((icnt + lcnt) != 1) || (ccnt && !rcnt) ||
-#ifdef USE_AUDIO_SAMPLE_CODE
-        (fcnt && sample_cnt) ||
-        (sample_cnt && !tcnt) ||
-#endif
-        (fcnt && !tcnt) ||
+        ((fcnt) && (sample_cnt)) ||
+        (fcnt && !tcnt) || (sample_cnt && !tcnt) ||
         (codec_cnt && !tcnt) ||
         errcnt){
         return -EINVAL;
@@ -254,15 +239,13 @@ static void i2s_test_print_cmdline_summary(struct i2s_test_info *info)
     printf("   %lu ring buffer entries of %lu audio samples each\n",
             info->rb_entries, info->samples_per_rb_entry);
     if (info->is_gen_audio) {
-#ifdef USE_AUDIO_SAMPLE_CODE
-        if (info->use_sample)
+        if (info->use_sample) {
             printf("Output sample data.\n");
-        else
-#else
+        } else {
             printf("Generate Audio Frequency: %lu Hz, Volume %lu\n",
                     info->aud_frequency,
                     info->aud_volume);
-#endif
+        }
         if (info->use_codec) {
             printf("Use Codec for playback\n");
         }
@@ -297,22 +280,20 @@ static int i2s_test_rb_fill_sinewave_and_pass(struct ring_buf *rb, void *arg)
 {
     int ret_value = 0;
     uint32_t buff_size;
+    struct i2s_test_info *info = arg;
 
     ring_buf_reset(rb);
     buff_size = ring_buf_space(rb);
 
-#ifdef USE_AUDIO_SAMPLE_CODE
-    struct i2s_test_info *info = arg;
-    if (info->use_sample)
+    if (info->use_sample) {
         ret_value = fill_output_buff_with_samp((int16_t *)ring_buf_get_tail(rb),
                                                &buff_size,
                                                (sizeof(struct i2s_test_sample) / sizeof(((struct i2s_test_sample*)0)->left)));
-    else
-#else
+    } else {
         ret_value = fill_output_buff_with_sine((int16_t *)ring_buf_get_tail(rb),
                                                 &buff_size,
                                                 (sizeof(struct i2s_test_sample) / sizeof(((struct i2s_test_sample*)0)->left)));
-#endif
+    }
 
     if (ret_value >= 0) {
         ring_buf_put(rb, ret_value);
@@ -753,13 +734,11 @@ int i2s_test_main(int argc, char *argv[])
     }
 
     if (info->is_gen_audio) {
-#ifdef USE_AUDIO_SAMPLE_CODE
-        if (info->use_sample)
+        if (info->use_sample) {
             gen_audio_sample_init(info->aud_volume);
-        else
-#else
+        } else {
             gen_audio_sine_init(info->aud_frequency, DEFAULT_SAMPLE_RATE, info->aud_volume);
-#endif
+        }
 
     }
 

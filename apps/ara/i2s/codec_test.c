@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Google, Inc.
+ * Copyright (c) 2016 Google, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -229,7 +229,7 @@ static int enable_codec_speaker(struct i2s_test_info *info,
     routes = (struct gb_audio_route *)(buf + tp->size_dais +
                                        tp->size_controls + tp->size_widgets);
 
-    // list all component
+    /* list all component */
     for (i = 0; i < tp->num_dais; i++) {
         printf("dai[%d] : %s\n", i, dais[i].name);
     }
@@ -255,7 +255,7 @@ static int enable_codec_speaker(struct i2s_test_info *info,
              routes[i].control_id, routes[i].destination_id, routes[i].index );
     }
 
-    // initialize routing table
+    /* initialize routing table */
     for (i = 0; i < tp->num_routes; i++) {
         /* enable widget of source */
         src = find_widget(widgets, tp->num_routes, routes[i].source_id);
@@ -284,12 +284,12 @@ static int enable_codec_speaker(struct i2s_test_info *info,
 
 #ifndef MIN_SPEKAER_SUPPORT
 
-    // enable audio controls
+    /* enable audio controls */
     value.value.integer_value[0] = 8;
     value.value.integer_value[1] = 8;
     ret = device_codec_set_control(dev,
                                    RT5647_CTL_SPKOUT_VOL,
-                                   0,  //no parent widget
+                                   0,  /* no parent widget */
                                    &value);
     if (ret) {
         fprintf(stderr, "RT5647_CTL_SPKOUT_VOL did not work: error %d\n",ret);
@@ -299,7 +299,7 @@ static int enable_codec_speaker(struct i2s_test_info *info,
     value.value.integer_value[1] = 0xA0;
     ret = device_codec_set_control(dev,
                                    RT5647_CTL_DAC2_VOL,
-                                   0,  //no parent widget
+                                   0,  /* no parent widget */
                                    &value);
     if (ret) {
         fprintf(stderr, "RT5647_CTL_DAC2_VOL did not work: error %d\n",ret);
@@ -309,7 +309,7 @@ static int enable_codec_speaker(struct i2s_test_info *info,
     value.value.integer_value[1] = 1;
     ret = device_codec_set_control(dev,
                                    RT5647_CTL_SPKOUT_MUTE,
-                                   0,  //no parent widget
+                                   0,  /* no parent widget */
                                    &value);
     if (ret) {
         fprintf(stderr, "RT5647_CTL_SPKOUT_MUTE did not work: error %d\n",ret);
@@ -317,7 +317,7 @@ static int enable_codec_speaker(struct i2s_test_info *info,
     }
     ret = device_codec_set_control(dev,
                                    RT5647_CTL_SPKVOL_MUTE,
-                                   0,  //no parent widget
+                                   0,  /* no parent widget */
                                    &value);
     if (ret) {
         fprintf(stderr, "RT5647_CTL_SPKVOL_MUTE did not work: error %d\n",ret);
@@ -325,7 +325,7 @@ static int enable_codec_speaker(struct i2s_test_info *info,
     }
     ret = device_codec_set_control(dev,
                                    RT5647_CTL_DAC2_SWITCH,
-                                   0,  //no parent widget
+                                   0,  /* no parent widget */
                                    &value);
     if (ret) {
         fprintf(stderr, "RT5647_CTL_DAC2_SWITCH did not work: error %d\n",ret);
@@ -338,7 +338,7 @@ static int enable_codec_speaker(struct i2s_test_info *info,
     value.value.integer_value[1] = 0x7f;
     ret = device_codec_set_control(dev,
                                    RT5647_CTL_PLAYBACK_VOL,
-                                   0,  //no parent widget
+                                   0,  /* no parent widget */
                                    &value);
     if (ret) {
         fprintf(stderr, "playback vol did not work: error %d\n",ret);
@@ -349,7 +349,7 @@ static int enable_codec_speaker(struct i2s_test_info *info,
     value.value.integer_value[1] = 1;
     ret = device_codec_set_control(dev,
                                    RT5647_CTL_PLAYBACK_MUTE,
-                                   0,  //no parent widget
+                                   0,  /* no parent widget */
                                    &value);
     if (ret) {
         fprintf(stderr, "playback mute did not work: error %d\n",ret);
@@ -378,12 +378,12 @@ static int disable_codec_speaker(struct i2s_test_info *info,
         return -EINVAL;
     }
 #ifndef MIN_SPEKAER_SUPPORT
-    // disable audio controls
+    /* disable audio controls */
     value.value.integer_value[0] = 0x27;
     value.value.integer_value[1] = 0x27;
     ret = device_codec_set_control(dev,
                                    RT5647_CTL_SPKOUT_VOL,
-                                   0,  //no parent widget
+                                   0,  /* no parent widget */
                                    &value);
     if (ret) {
         fprintf(stderr, "RT5647_CTL_SPKOUT_VOL did not work: error %d\n",ret);
@@ -393,7 +393,7 @@ static int disable_codec_speaker(struct i2s_test_info *info,
     value.value.integer_value[1] = 0x0;
     ret = device_codec_set_control(dev,
                                    RT5647_CTL_DAC2_VOL,
-                                   0,  //no parent widget
+                                   0,  /* no parent widget */
                                    &value);
     if (ret) {
         fprintf(stderr, "RT5647_CTL_DAC2_VOL did not work: error %d\n",ret);
@@ -403,7 +403,7 @@ static int disable_codec_speaker(struct i2s_test_info *info,
     value.value.integer_value[1] = 0;
     ret = device_codec_set_control(dev,
                                    RT5647_CTL_SPKOUT_MUTE,
-                                   0,  //no parent widget
+                                   0,  /* no parent widget */
                                    &value);
     if (ret) {
         fprintf(stderr, "RT5647_CTL_SPKOUT_MUTE did not work: error %d\n",ret);
@@ -411,7 +411,7 @@ static int disable_codec_speaker(struct i2s_test_info *info,
     }
     ret = device_codec_set_control(dev,
                                    RT5647_CTL_SPKVOL_MUTE,
-                                   0,  //no parent widget
+                                   0,  /* no parent widget */
                                    &value);
     if (ret) {
         fprintf(stderr, "RT5647_CTL_SPKVOL_MUTE did not work: error %d\n",ret);
@@ -419,19 +419,19 @@ static int disable_codec_speaker(struct i2s_test_info *info,
     }
     ret = device_codec_set_control(dev,
                                    RT5647_CTL_DAC2_SWITCH,
-                                   0,  //no parent widget
+                                   0,  /* no parent widget */
                                    &value);
     if (ret) {
         fprintf(stderr, "RT5647_CTL_DAC2_SWITCH did not work: error %d\n",ret);
         goto codec_err;
     }
 #else
-    // disable audio controls
+    /* disable audio controls */
     value.value.integer_value[0] = 0x0;
     value.value.integer_value[1] = 0x0;
     ret = device_codec_set_control(dev,
                                    RT5647_CTL_PLAYBACK_VOL,
-                                   0,  //no parent widget
+                                   0,  /* no parent widget */
                                    &value);
     if (ret) {
         fprintf(stderr, "playback vol did not work: error %d\n",ret);
@@ -442,7 +442,7 @@ static int disable_codec_speaker(struct i2s_test_info *info,
     value.value.integer_value[1] = 0;
     ret = device_codec_set_control(dev,
                                    RT5647_CTL_PLAYBACK_MUTE,
-                                   0,  //no parent widget
+                                   0,  /* no parent widget */
                                    &value);
     if (ret) {
         fprintf(stderr, "playback mute did not work: error %d\n",ret);

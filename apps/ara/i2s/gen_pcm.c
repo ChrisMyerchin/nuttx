@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2015 Google Inc.
+* Copyright (c) 2015-2016 Google Inc.
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,7 @@ Generate sample sine wave data
 #include <sys/time.h>
 #include <nuttx/time.h>
 
-//1k samples worth of 16bit PCM sine wave buffer
+/* 1k samples worth of 16bit PCM sine wave buffer */
 int16_t period_buffer[] = {
     201,   402,   603,   804,   1005,  1206,  1407,  1608,
     1809,  2009,  2210,  2411,  2611,  2811,  3012,  3212,
@@ -291,7 +291,8 @@ int gen_audio_sine_deinit(void)
     if (pcm_stream_state.signature != PCM_STREAM_SIGNATURE) {
         fprintf(stderr, "delete uninitialized\n");
     } else {
-        pcm_stream_state.signature = 0;  //just in case someone tries to use a stale structure.
+        /* just in case someone tries to use a stale structure. */
+        pcm_stream_state.signature = 0;
     }
 
     return ret_value;
@@ -383,7 +384,7 @@ int fill_output_buff_with_sine(int16_t *buffer,
             current_buff_size -= number_of_channels*sizeof(current_sample);
         }
 
-        //update number of filled
+        /* update number of filled */
         ret_value = *buff_size - current_buff_size;
     }
 
