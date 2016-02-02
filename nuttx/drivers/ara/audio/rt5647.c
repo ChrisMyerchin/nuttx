@@ -41,7 +41,7 @@
 #include <nuttx/ara/audio_board.h>
 #include <nuttx/ara/codec.h>
 
-#undef ENABLE_HAPTIC_TEST
+#define ENABLE_HAPTIC_TEST
 #define MIN_SPEAKER_SUPPORT
 
 #define RT5647_CODEC_NAME                   "rt5647"
@@ -650,15 +650,19 @@ struct rt5647_reg rt5647_init_regs[] = {
     { RT5647_PWR_MGT_5, 0x3002 }, /* turn on LDO2 power */
     { RT5647_CLS_D_AMP, 0xA0E8 }, /* enable auto powerdown when over current */
     { RT5647_GENERAL_CTRL_2, 0x4C00 }, /* Turn off Class D AMP when No mclk */
-#ifdef ENABLE_HAPTIC_TEST
-    /* turn on Haptic generator control for testing */
-    { RT5647_HAPTIC_CTRL1, 0x2888 }, /* AC and 888Hz */
-#endif
-
 #ifdef MIN_SPEAKER_SUPPORT
     { RT5647_DACL2_R2_DIGI_VOL, 0xA1A1 },
     { RT5647_PWR_MGT_1, 0x9BC1 },
+#ifdef ENABLE_HAPTIC_TEST
+    /* turn on Haptic generator control for testing */
+    { RT5647_HAPTIC_CTRL1, 0x2888 }, /* AC and 888Hz */
+    { RT5647_DACL2_R2_DIGI_MUTE, 0x0004 },
+    { RT5647_HPOUT_VOL, 0xc810 },
+    { RT5647_HP_R_MIXER, 0x001d },
+    { RT5647_HPO_MIXER_CTRL, 0x4000 },
+#else
     { RT5647_DACL2_R2_DIGI_MUTE, 0x0000 },
+#endif
     { RT5647_PWR_MGT_5, 0x3002 },
     { RT5647_PWR_MGT_6, 0xC000 },
 #endif
@@ -788,6 +792,10 @@ enum {
     RT5647_WIDGET_SPK_DAC,
     RT5647_WIDGET_SPK_MIXER,
     RT5647_WIDGET_AIF1RX,
+#ifdef ENABLE_HAPTIC_TEST
+    RT5647_WIDGET_DACR2_MUX,
+    RT5647_WIDGET_IF1_DAC2R,
+#endif
 #endif
     RT5647_WIDGET_MAX
 };
@@ -1001,6 +1009,11 @@ struct audio_widget rt5647_widgets[] = {
     WIDGET_E("SPK Amp", RT5647_WIDGET_SPK_AMP_SWITCH, SWITCH,
              rt5647_spk_amp_switch, ARRAY_SIZE(rt5647_spk_amp_switch),
              NOPWRCTL, 0, 0, rt5647_speaker_event),
+#ifdef ENABLE_HAPTIC_TEST
+    WIDGET("IF1 DAC2 R", RT5647_WIDGET_IF1_DAC2R, PGA, NULL, 0, NOPWRCTL, 0, 0),
+    WIDGET("DAC R2 MUX", RT5647_WIDGET_DACR2_MUX, MUX, rt5647_dac_r2_mux,
+               ARRAY_SIZE(rt5647_dac_r2_mux), NOPWRCTL, 0, 0),
+#endif
 #endif
 };
 
@@ -1095,6 +1108,10 @@ audio_route rt5647_routes[] = {
     { RT5647_WIDGET_SPK_DAC, RT5647_WIDGET_SPK_AMP_SWITCH, RT5647_CTL_SPKAMP_SWITCH, NOINDEX},
     { RT5647_WIDGET_SPK_MIXER, RT5647_WIDGET_SPK_DAC, NOCONTROL, 0 },
     { RT5647_WIDGET_AIF1RX, RT5647_WIDGET_SPK_MIXER, NOCONTROL, 0},
+#ifdef ENABLE_HAPTIC_TEST
+    { RT5647_WIDGET_IF1_DAC2R, RT5647_WIDGET_DACR2_MUX,
+      RT5647_CTL_DAC2_RSRC, 4 }, /* input source : haptic control */
+#endif /* ENABLE_HAPTIC_TEST */
 #endif
 };
 
