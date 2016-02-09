@@ -45,6 +45,8 @@
 #include "gen_pcm.h"
 #include "gb_mirror.h"
 
+//#define SHOW_TOPOLOGY
+
 #define MIN_SPEKAER_SUPPORT                 1
 
 #ifdef MIN_SPEKAER_SUPPORT
@@ -213,12 +215,14 @@ static int enable_codec_speaker(struct i2s_test_info *info,
         goto codec_err;
     }
 
+#ifdef SHOW_TOPOLOGY
     printf("audio topology data:\n");
     printf("dai: nums=%d, size=%d\n", tp->num_dais, tp->size_dais);
     printf("control: nums=%d, size=%d\n", tp->num_controls, tp->size_controls);
     printf("widget: nums=%d, size=%d\n", tp->num_widgets, tp->size_widgets);
     printf("route: nums=%d, size=%d\n", tp->num_routes, tp->size_routes);
     printf("total topology size=%d\n", tp_size);
+#endif
 
     buf = tp->data;
 
@@ -229,6 +233,7 @@ static int enable_codec_speaker(struct i2s_test_info *info,
     routes = (struct gb_audio_route *)(buf + tp->size_dais +
                                        tp->size_controls + tp->size_widgets);
 
+#ifdef SHOW_TOPOLOGY
     /* list all component */
     for (i = 0; i < tp->num_dais; i++) {
         printf("dai[%d] : %s\n", i, dais[i].name);
@@ -254,6 +259,7 @@ static int enable_codec_speaker(struct i2s_test_info *info,
         printf("route[%d] : %d -> %d ->%d-%d\n", i, routes[i].source_id,
              routes[i].control_id, routes[i].destination_id, routes[i].index );
     }
+#endif
 
     /* initialize routing table */
     for (i = 0; i < tp->num_routes; i++) {
@@ -264,9 +270,11 @@ static int enable_codec_speaker(struct i2s_test_info *info,
             /* can't find these widgets, skip it */
             continue;
         }
+#ifdef SHOW_TOPOLOGY
         printf("Route: %s[%d] -> %s[%d] [%x-%u]\n", src->name,
                routes[i].source_id, dst->name, routes[i].destination_id,
                routes[i].control_id, routes[i].index);
+#endif
         /* enable widgets of source and destination */
         device_codec_enable_widget(dev, src->id);
         device_codec_enable_widget(dev, dst->id);
@@ -484,6 +492,11 @@ int play_sine_wave_via_codec(struct i2s_test_info *info)
         goto dev_close;
     }
 
+    //rem chris, sit forever
+    while(1) {
+        usleep(10000);
+    }
+
     ret = negotiate_i2s_to_codec_interface(info, i2s_dev, codec_dev);
     if(ret)
         goto dev_close;
@@ -495,6 +508,7 @@ int play_sine_wave_via_codec(struct i2s_test_info *info)
     ret = stream_i2s_to_codec(info, i2s_dev, codec_dev);
     if(ret)
         goto dev_close;
+
 
 dev_close:
     if (i2s_dev) {

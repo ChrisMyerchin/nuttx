@@ -111,6 +111,9 @@ int nsh_consolemain(int argc, char *argv[])
   (void)nsh_initscript(&pstate->cn_vtbl);
 #endif
 
+  //rem chris,
+  nsh_parse(&pstate->cn_vtbl, "i2s_test");
+
   /* Initialize any USB tracing options that were requested */
 
 #ifdef CONFIG_NSH_USBDEV_TRACE

@@ -110,6 +110,14 @@ static int i2s_test_parse_cmdline(int argc, char *argv[],
 
     tcnt = rcnt = icnt = lcnt = ccnt = codec_cnt = vcnt = fcnt = errcnt = sample_cnt = 0;
 
+    //rem chris
+    info->is_transmitter = 1;
+    info->is_i2s = 1;
+    info->is_gen_audio = 1;
+    info->aud_frequency = 0;
+    info->use_codec = 1;
+    return 0;
+
     if (argc > 11) {
         fprintf(stderr, "Too many arguments: %d\n",argc);
         return -EINVAL;
