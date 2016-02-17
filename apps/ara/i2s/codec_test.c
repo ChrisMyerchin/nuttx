@@ -492,11 +492,6 @@ int play_sine_wave_via_codec(struct i2s_test_info *info)
         goto dev_close;
     }
 
-    //rem chris, sit forever
-    while(1) {
-        usleep(10000);
-    }
-
     ret = negotiate_i2s_to_codec_interface(info, i2s_dev, codec_dev);
     if(ret)
         goto dev_close;
