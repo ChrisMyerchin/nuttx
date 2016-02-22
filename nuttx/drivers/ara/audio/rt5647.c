@@ -42,7 +42,7 @@
 #include <nuttx/ara/codec.h>
 #include <nuttx/clock.h>
 
-#define ENABLE_HAPTIC_TEST
+//#define ENABLE_HAPTIC_TEST
 #define SDB_AUDIO_TEST_BOARD
 #define MIN_SPEAKER_SUPPORT
 
@@ -636,6 +636,7 @@ struct rt5647_info {
 
     /* headphone power state */
     uint8_t hp_enable;
+    uint32_t tdm1_save; /* Follow the magic of the linux driver */
 
     /* headphone mute state */
     uint8_t hp_mute;
@@ -652,6 +653,73 @@ struct rt5647_info {
     uint32_t keep_polling;
 };
 
+#if 0
+struct rt5647_reg rt5647_init_regs[] = {
+    { RT5647_PR_INDEX, 0x003d },
+    { RT5647_PR_DATA, 0x3600 }, /* turn on ADC/DAC clock generator */
+
+    { RT5647_GENERAL_CTRL_1, 0x2061 }, /* enable MCLK Gate Control */
+    { RT5647_ADC_DAC_CLK_CTRL, 0x0000 },
+    { RT5647_PR_INDEX, 0x003d },
+    { RT5647_PR_DATA, 0x3600 },
+
+    /* playback */
+    { RT5647_DACL2_R2_DIGI_MUTE, 0x0000 }, /* data sheet error, must set this register */
+    { RT5647_DAC_STO_DIGI_MIXER, 0x4646 },/* DACL2 & DACR2 */
+    { RT5647_OUT_L_MIXER_MUTE, 0x001F },
+    { RT5647_OUT_R_MIXER_MUTE, 0x001F },
+    { RT5647_LOUT_MIXER, 0xF000 },
+    { RT5647_LOUT_VOL, 0xC8C8 },
+
+    { RT5647_SPK_L_MIXER_CTRL, 0x003C }, /* DACL1 */
+    { RT5647_SPK_R_MIXER_CTRL, 0x003C }, /* DACR1 */
+    { RT5647_SPO_MIXER_CTRL, 0xD806 }, /* SPKVOLL & SPKVOLR */
+    //{ RT5647_SPO_MIXER_CTRL, 0x7803 }, /* SPKVOLL & SPKVOLR */
+
+    { RT5647_SPKOUT_VOL, 0x8888 }, /* SPOL&SPOR output mute */
+    /* record */
+    { RT5647_IN2_CTRL, 0x0000 },/* IN1 boost 20db and signal ended mode */
+    { RT5647_REC_MIXER_L_CTRL, 0x007F },/* Mic1 -> RECMIXL */
+    { RT5647_REC_MIXER_R_CTRL, 0x007F },/* Mic1 -> RECMIXR */
+
+    { RT5647_STO1_ADC_DIGI_MIXER, 0x7060 },
+    { RT5647_STO1_ADC_DIGI_VOL, 0xAFAF },/* Mute STO1 ADC for depop */
+
+    /* power */
+    { RT5647_PWR_MGT_1, 0x98C0 }, /* power to: I2S1, (todo add control for DAC1+2) */
+    { RT5647_PWR_MGT_2, 0x0E00 }, /* turn on stereo filter power, ?? mono filter must also be on even though we do not use them */
+    { RT5647_PWR_MGT_4, 0x0204 }, /* turn on PLL power, plus jack detect 1 */
+    { RT5647_PWR_MGT_5, 0x0002 }, /* turn on LDO2 power */
+    { RT5647_CLS_D_AMP, 0xA0E8 }, /* enable auto powerdown when over current */
+
+    //rem chris { RT5647_GENERAL_CTRL_2, 0x4C00 }, /* Turn off Class D AMP when No mclk */
+#ifdef MIN_SPEAKER_SUPPORT
+    { RT5647_DACL2_R2_DIGI_VOL, 0xA1A1 },
+    //
+#ifdef SDB_AUDIO_TEST_BOARD
+    { RT5647_GPIO_CTRL_4, 0x0020 }, /* GPIO12 is output low. Speaker power disable */
+    /* rem chris hard code on for now */
+    //{ RT5647_HPOUT_VOL, 0x0808 }, /* rem should be 8888, change when mute control added turn on R and L headset op-amp 0db amplitude */
+    { RT5647_HPOUT_VOL, 0x0000 },
+    { RT5647_HPO_MIXER_CTRL, 0x0000 }, /* select headset 0 db amplitude */
+    { RT5647_HP_L_MIXER_MUTE, 0x001e }, /* no mixing, select DACL1->HP_L */
+    { RT5647_HP_R_MIXER_MUTE, 0x001e }, /* no mixing, select DACR1->HP_R */
+
+    //jack detect
+    { RT5647_JACK_DET_CTRL_3, 0x0001 },
+    { RT5647_JACK_DET_CTRL_4, 0x1000 },
+    { RT5647_JACK_DET_CTRL_1, 0x0C00 },
+    { RT5647_JD1, 0x0001 },
+
+#endif
+#ifdef ENABLE_HAPTIC_TEST
+    { RT5647_DACL2_R2_DIGI_MUTE, 0x0004 }, /* mux haptic as DACR2 */
+    /* turn on Haptic generator control for testing */
+    { RT5647_HAPTIC_CTRL1, 0x2888 }, /* AC and 888Hz */
+#endif
+#endif
+};
+#else
 /**
  * codec register initialization table
  */
@@ -665,18 +733,17 @@ struct rt5647_reg rt5647_init_regs[] = {
 
 
     /* playback */
-    { RT5647_DAC_STO_DIGI_MIXER, 0x4646 },/* DACL2 & DACR2 */
-    { RT5647_OUT_L_MIXER_MUTE, 0x001F },
-    { RT5647_OUT_R_MIXER_MUTE, 0x001F },
-    { RT5647_LOUT_MIXER, 0xF000 },
-    { RT5647_LOUT_VOL, 0xC8C8 },
+    /* digital mixer path */
+    { RT5647_DACL2_R2_DIGI_MUTE, 0x0000 }, /* data sheet error, must set this register */
+    { RT5647_DAC_STO_DIGI_MIXER, 0x4646 }, /* Digital DACL2 & DACR2 to mixer DACL1 and DACR1*/
 
+    /* analog speaker path */
     { RT5647_SPK_L_MIXER_CTRL, 0x003C }, /* DACL1 */
     { RT5647_SPK_R_MIXER_CTRL, 0x003C }, /* DACR1 */
-        //{ RT5647_SPO_MIXER_CTRL, 0xD806 }, /* SPKVOLL & SPKVOLR */
-    { RT5647_SPO_MIXER_CTRL, 0x7803 }, /* SPKVOLL & SPKVOLR */
-
+    { RT5647_SPO_MIXER_CTRL, 0xD806 }, /* SPKVOLL & SPKVOLR */
     { RT5647_SPKOUT_VOL, 0x8888 }, /* SPOL&SPOR output mute */
+
+
     /* record */
     { RT5647_IN2_CTRL, 0x0000 },/* IN1 boost 20db and signal ended mode */
     { RT5647_REC_MIXER_L_CTRL, 0x007F },/* Mic1 -> RECMIXL */
@@ -689,17 +756,30 @@ struct rt5647_reg rt5647_init_regs[] = {
 
 #ifdef MIN_SPEAKER_SUPPORT
     { RT5647_DACL2_R2_DIGI_VOL, 0xA1A1 },
+
+    { RT5647_PWR_MGT_1, 0xffff},
+    { RT5647_PWR_MGT_2, 0xffff},
+    { RT5647_PWR_MGT_3, 0xffff},
+#if 0 //for testing
+    { RT5647_PWR_MGT_4, 0xffff},
+    { RT5647_PWR_MGT_5, 0xffff},
+    { RT5647_PWR_MGT_6, 0xffff},
+#endif
+
     //
 #ifdef SDB_AUDIO_TEST_BOARD
     { RT5647_GPIO_CTRL_4, 0x0020 }, /* GPIO12 is output low. Speaker power disable */
-    /* rem chris hard code on for now */
-    //{ RT5647_HPOUT_VOL, 0x0808 }, /* rem should be 8888, change when mute control added turn on R and L headset op-amp 0db amplitude */
-    { RT5647_HPOUT_VOL, 0x0000 },
-    { RT5647_HPO_MIXER_CTRL, 0x0000 }, /* rem chris, fix 0x4000, select headset 0 db amplitude */
+    /* hpmix setup */
+    { RT5647_HPOUT_VOL, 0x8888 }, /* rem chris should be C8C8, change when mute control added for bits 6 and 14 */
     { RT5647_HP_L_MIXER_MUTE, 0x001e }, /* no mixing, select DACL1->HP_L */
     { RT5647_HP_R_MIXER_MUTE, 0x001e }, /* no mixing, select DACR1->HP_R */
 
+    /* hpout setup */
+    { RT5647_HPO_MIXER_CTRL, 0x4000 }, /* select headset 0 db amplitude */
+
     { RT5647_GPIO_CTRL_1, 0x8000 }, /* GPIO1 is IRQ out. */
+    { RT5647_GENERAL_CTRL_2, 0x1480 }, /* magic + DAMP off when MCLK Off*/
+    //{ RT5647_GENERAL_CTRL_2, 0x4C00 }, /* Turn off Class D AMP when No mclk */
 
 #ifdef ENABLE_JACK_DETECT
     /* jack detect */
@@ -724,6 +804,7 @@ struct rt5647_reg rt5647_init_regs[] = {
     { RT5647_IN1_CTRL3, 0xc000 }, /* magic */
 #endif
 };
+#endif
 
 /**
  * DAI device table
@@ -1941,6 +2022,10 @@ static int rt5647_set_config(struct device *dev, unsigned int dai_idx,
             (code.bp << RT5647_PLL_M_BYPASS_SFT);
     codec_write(RT5647_PLL2, value);
 
+    /* emulate linux driver magic */
+    tdm1 |= BIT(15);
+    info->tdm1_save = tdm1;
+
     if (dai_idx == 0) { /* i2s1 */
         if (info->tdm_en) {
             codec_write(RT5647_TDM1, tdm1);
@@ -2448,16 +2533,16 @@ static void rt5647_codec_enable(struct rt5647_info *info, uint8_t on_off)
         codec_update(RT5647_PWR_MGT_1, mask, mask);
 
         /* power to: Stereo R and L + mono*/
-        mask = BIT(15) | BIT(11) | BIT(14) | BIT(13);
+        mask = BIT(11) | BIT(10) | BIT(9);
         codec_update(RT5647_PWR_MGT_2, mask, mask);
 
         /* power to: PLL */
         mask = BIT(9);
         codec_update(RT5647_PWR_MGT_4, mask, mask);
 
-        /* power to: ??LDO2 en (mic Bias enable) */
+        /* power to: LDO2 (required for speaker output) */
         mask = BIT(1);
-        codec_update(RT5647_PWR_MGT_4, mask, mask);
+        codec_update(RT5647_PWR_MGT_5, mask, mask);
 
         /* Power up Vref and Bias */
         mask = BIT(15) | BIT(13) | BIT(11) | BIT(4);
@@ -2510,7 +2595,6 @@ static void rt5647_codec_enable(struct rt5647_info *info, uint8_t on_off)
 static void rt5647_headset_power(struct rt5647_info *info, uint8_t on_off)
 {
     uint32_t mask = 0;
-    uint32_t value = 0;
 
     if (on_off) {
 
@@ -2523,22 +2607,21 @@ static void rt5647_headset_power(struct rt5647_info *info, uint8_t on_off)
         codec_update(RT5647_HP_DEPOP_2, mask, mask);
 
         /* Power on Headphone Amplifier, part 1 */
-        mask = BIT(0) | BIT(2) | BIT(3);
-        codec_write(RT5647_HP_DEPOP_1, mask);
+        codec_write(RT5647_HP_DEPOP_1, 0x000d);
 
-        //rem chris, reset TDM1 settings???
+        /* magic */
+        //codec_write(RT5647_TDM1, info->tdm1_save);
 
         /* dealy 150 msec */
         usleep(150000);
 
         /* Enable fast Vref */
-        value = 0;
         mask = BIT(14) | BIT(3);
+        codec_update(RT5647_PWR_MGT_3, 0, mask);
 
         /* power on Headphone Amplifier */
         mask |= BIT(7) | BIT(6) | BIT(5);
-        value |= BIT(7) | BIT(6) | BIT(5);
-        codec_update(RT5647_PWR_MGT_3, value, mask);
+        codec_update(RT5647_PWR_MGT_3, mask, mask);
 
         /* dealy 5 msec */
         usleep(5000);
@@ -2570,9 +2653,6 @@ static void rt5647_headset_power(struct rt5647_info *info, uint8_t on_off)
         /* now full disable Headphone Amplifier */
         codec_write(RT5647_HP_DEPOP_1, 0x0000);
 
-        mask = BIT(4) | BIT(2);
-        codec_write(RT5647_HP_DEPOP_1, mask);
-
         /* power off Headphone Amplifier */
         mask = BIT(6) | BIT(7) | BIT(5);
         codec_update(RT5647_PWR_MGT_3, 0, mask);
@@ -2586,12 +2666,12 @@ static void rt5647_headset_power(struct rt5647_info *info, uint8_t on_off)
 
 
 /* Modify the Line output state */
-static void rt5647_line_enable(struct rt5647_info *info, uint8_t on_off)
+static void rt5647_mono_enable(struct rt5647_info *info, uint8_t on_off)
 {
     uint32_t mask = 0;
 
     if (on_off) {
-        rt5647_headset_power(info, 1);
+        //rt5647_headset_power(info, 1);
 
         /* turn on Line mixer */
         mask = BIT(12);
@@ -2663,6 +2743,42 @@ static void rt5647_hp_enable(struct rt5647_info *info, uint8_t on_off)
 
     if (on_off) {
         rt5647_headset_power(info, 1);
+
+#if 0
+//rem chris just in case
+/* HP out mix let everything in */
+mask = BIT(14) | BIT(13) | BIT(12);
+codec_update(RT5647_HPO_MIXER_CTRL, 0, mask);
+
+/* left mixer, let everything through */
+mask = BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0);
+codec_update(RT5647_HP_L_MIXER_MUTE, 0, mask);
+
+/* right mixer, let everything through */
+mask = BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0);
+codec_update(RT5647_HP_R_MIXER_MUTE, 0, mask);
+
+mask = BIT(15) | BIT(14) | BIT(7) | BIT(6) | BIT(12);
+codec_update(RT5647_HPOUT_VOL, 0, mask);
+
+
+    //headphone
+/* power on Headphone Amplifier */
+mask = BIT(6) | BIT(7); //| BIT(5);
+codec_update(RT5647_PWR_MGT_3, mask, mask);
+
+/* power on headphone mix control */
+mask = BIT(6) | BIT(7);
+codec_update(RT5647_PWR_MGT_5, mask, mask);
+
+/* power on headphone volume control */
+mask = BIT(10) | BIT(11);
+codec_update(RT5647_PWR_MGT_6, mask, mask);
+
+/* Power on Headphone Amplifier */
+mask = BIT(0) | BIT(3) | BIT(4);
+codec_update(RT5647_HP_DEPOP_1, mask, mask);
+#endif
 
         /* Schedule the un-mute to run after timeout */
         work_queue(HPWORK, &info->hp_work, hp_unmute_worker, info,
@@ -2737,7 +2853,8 @@ static int rt5647_speaker_event(struct device *dev, uint8_t widget_id,
     mask = BIT(4);
     codec_update(RT5647_GPIO_CTRL_4, mask, mask);
 
-    rt5647_hp_event(dev, widget_id, event);
+    //rt5647_hp_event(dev, widget_id, event);
+
 #endif
 
     /* power on speaker mix control */
@@ -2765,7 +2882,7 @@ static int rt5647_speaker_event(struct device *dev, uint8_t widget_id,
         mask = BIT(4);
         codec_update(RT5647_GPIO_CTRL_4, 0, mask);
 
-        rt5647_hp_event(dev, widget_id, event);
+        //rt5647_hp_event(dev, widget_id, event);
 #endif
 
         /* power off speaker mix control */
@@ -2878,7 +2995,7 @@ static int rt5647_codec_open(struct device *dev)
     codec_update(RT5647_PWR_MGT_3, 0, RT5647_PWR3_LDO1_MASK);
 
     /* power Up */
-    rt5647_codec_enable(info, 1);
+    //rt5647_codec_enable(info, 1);
 
     //rem chris
     if(!info->pthread_tester)
@@ -3003,6 +3120,8 @@ static int rt5647_codec_probe(struct device *dev)
 
     /* enable TDM mode support */
     info->tdm_en = 1;
+    /* magic */
+    info->tdm1_save = 0xC000;
 
     /* initialize i2c bus */
     info->i2c = up_i2cinitialize(0);
