@@ -757,10 +757,10 @@ struct rt5647_reg rt5647_init_regs[] = {
 #ifdef MIN_SPEAKER_SUPPORT
     { RT5647_DACL2_R2_DIGI_VOL, 0xA1A1 },
 
+#if 0 //for testing
     { RT5647_PWR_MGT_1, 0xffff},
     { RT5647_PWR_MGT_2, 0xffff},
     { RT5647_PWR_MGT_3, 0xffff},
-#if 0 //for testing
     { RT5647_PWR_MGT_4, 0xffff},
     { RT5647_PWR_MGT_5, 0xffff},
     { RT5647_PWR_MGT_6, 0xffff},
@@ -2557,7 +2557,7 @@ static void rt5647_codec_enable(struct rt5647_info *info, uint8_t on_off)
         codec_update(RT5647_GENERAL_CTRL_1, mask, mask);
 
         /* select 1.2V LDO */
-        codec_update(RT5647_GENERAL_CTRL_1, 0x0002, 0x0003);
+        codec_update(RT5647_PWR_MGT_3, 0x0002, 0x0003);
 
 
     } else {
@@ -2995,7 +2995,7 @@ static int rt5647_codec_open(struct device *dev)
     codec_update(RT5647_PWR_MGT_3, 0, RT5647_PWR3_LDO1_MASK);
 
     /* power Up */
-    //rt5647_codec_enable(info, 1);
+    rt5647_codec_enable(info, 1);
 
     //rem chris
     if(!info->pthread_tester)
