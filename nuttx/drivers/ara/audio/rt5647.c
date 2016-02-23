@@ -788,7 +788,7 @@ struct rt5647_reg rt5647_init_regs[] = {
     { RT5647_JD1, 0x0001 }, /* one port jack detect */
     { RT5647_MICBIAS, 0x0008 }, /* IRQ Debounce from internal clock*/
     { RT5647_JACK_DET_CTRL_3, 0x0001 }, /* HP -> JD1_1 */
-    { RT5647_JACK_DET_CTRL_1, 0x0800 }, /* set HPO jack detect low, detect high = 0x0C00*/
+    { RT5647_JACK_DET_CTRL_1, 0x0C00 }, /* set HPO jack detect low 0800, detect high = 0x0C00*/
 
     { RT5647_GENERAL_CTRL_2, 0x1080 }, /* magic */
     //{ RT5647_GENERAL_CTRL_2, 0x4C00 }, /* Turn off Class D AMP when No mclk */
@@ -2602,6 +2602,16 @@ static void rt5647_headset_power(struct rt5647_info *info, uint8_t on_off)
             return;
         }
 
+
+        /* power on headphone mix control */
+        mask = BIT(6) | BIT(7);
+        codec_update(RT5647_PWR_MGT_5, mask, mask);
+
+        /* power on headphone volume control */
+        mask = BIT(10) | BIT(11);
+        codec_update(RT5647_PWR_MGT_6, mask, mask);
+
+
         /* power on enable depop */
         mask = BIT(13);
         codec_update(RT5647_HP_DEPOP_2, mask, mask);
@@ -2645,6 +2655,14 @@ static void rt5647_headset_power(struct rt5647_info *info, uint8_t on_off)
         if ( !info->hp_enable ) {
             return;
         }
+
+        /* power off headphone mix control */
+        mask = BIT(6) | BIT(7);
+        codec_update(RT5647_PWR_MGT_5, 0, mask);
+
+        /* power off headphone volume control */
+        mask = BIT(10) | BIT(11);
+        codec_update(RT5647_PWR_MGT_6, 0, mask);
 
         /* Power off soft gen, disable depop, part 1 */
         mask = BIT(2) | BIT(9) | BIT(8);
@@ -2728,6 +2746,9 @@ static void hp_unmute_worker(void *data)
     mask = BIT(2) | BIT(9) | BIT(8);
     codec_update(RT5647_HP_DEPOP_1, 0, mask);
 
+    printf("UN_MUTE HEADPHONES\n");
+    rt5647_dump_register();
+
     info->hp_mute = 0;
 }
 
@@ -2743,42 +2764,6 @@ static void rt5647_hp_enable(struct rt5647_info *info, uint8_t on_off)
 
     if (on_off) {
         rt5647_headset_power(info, 1);
-
-#if 0
-//rem chris just in case
-/* HP out mix let everything in */
-mask = BIT(14) | BIT(13) | BIT(12);
-codec_update(RT5647_HPO_MIXER_CTRL, 0, mask);
-
-/* left mixer, let everything through */
-mask = BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0);
-codec_update(RT5647_HP_L_MIXER_MUTE, 0, mask);
-
-/* right mixer, let everything through */
-mask = BIT(4) | BIT(3) | BIT(2) | BIT(1) | BIT(0);
-codec_update(RT5647_HP_R_MIXER_MUTE, 0, mask);
-
-mask = BIT(15) | BIT(14) | BIT(7) | BIT(6) | BIT(12);
-codec_update(RT5647_HPOUT_VOL, 0, mask);
-
-
-    //headphone
-/* power on Headphone Amplifier */
-mask = BIT(6) | BIT(7); //| BIT(5);
-codec_update(RT5647_PWR_MGT_3, mask, mask);
-
-/* power on headphone mix control */
-mask = BIT(6) | BIT(7);
-codec_update(RT5647_PWR_MGT_5, mask, mask);
-
-/* power on headphone volume control */
-mask = BIT(10) | BIT(11);
-codec_update(RT5647_PWR_MGT_6, mask, mask);
-
-/* Power on Headphone Amplifier */
-mask = BIT(0) | BIT(3) | BIT(4);
-codec_update(RT5647_HP_DEPOP_1, mask, mask);
-#endif
 
         /* Schedule the un-mute to run after timeout */
         work_queue(HPWORK, &info->hp_work, hp_unmute_worker, info,
@@ -2799,7 +2784,7 @@ codec_update(RT5647_HP_DEPOP_1, mask, mask);
         value = BIT(9) | BIT(8);
         codec_update(RT5647_HP_DEPOP_1, value, mask);
 
-        /* un-mute headphone */
+        /* mute headphone */
         mask = BIT(15) | BIT(7);
         codec_update(RT5647_HPOUT_VOL, mask, mask);
 
@@ -2853,7 +2838,7 @@ static int rt5647_speaker_event(struct device *dev, uint8_t widget_id,
     mask = BIT(4);
     codec_update(RT5647_GPIO_CTRL_4, mask, mask);
 
-    //rt5647_hp_event(dev, widget_id, event);
+    rt5647_hp_event(dev, widget_id, event);
 
 #endif
 
@@ -2882,7 +2867,7 @@ static int rt5647_speaker_event(struct device *dev, uint8_t widget_id,
         mask = BIT(4);
         codec_update(RT5647_GPIO_CTRL_4, 0, mask);
 
-        //rt5647_hp_event(dev, widget_id, event);
+        rt5647_hp_event(dev, widget_id, event);
 #endif
 
         /* power off speaker mix control */
